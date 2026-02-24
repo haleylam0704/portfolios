@@ -1,0 +1,13 @@
+---
+title: "Methodological Trends in Social/Personality Psychology (2017-2022)"
+author: "Haley Lam"
+date: "`r Sys.Date()`"
+output: 
+  html_document: 
+    theme: cosmo
+---
+### Overview
+This paper uses the existing definitions and methods validated by Lam (2025) to categorize all articles from JPSP, SPPS, and PSPB in 2017-2022. It is the "Phase 1" of 3, which aims at identifying potential for causal inference methods in psychology.
+
+
+
