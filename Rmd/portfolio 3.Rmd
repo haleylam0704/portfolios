@@ -87,7 +87,9 @@ mean_props <- data_clean %>%
         )
 mean_props
 ```
+As expected, the three social/personality journals do a lot of Experimental/Correlational work. It might be worth digging deeper into those categorized as "Causal Inference", since I have a feeling many of them aren't quite causal. 
 
+Regarding between-journal differences, JPSP publishes the most experimental work, while SPPS does more desriptive/correlational work. This, I susepct, could be due to how experiments are well-respected in social psych? JPSP as the top journal might prefer such 'gold standard' studies, while SPPS might be more willing to take in high-quality descriptive/correlational studies.
 
 ## 4. Generate Trend Plots
 Next, we can generate some plots! We can focus on the main 4 categories (as reported in Lam, 2025).
@@ -113,4 +115,4 @@ trends_plot <- ggplot(journal_yearly_summary %>% filter(category %in% main_categ
               axis.text.x = element_text(angle = 45, hjust = 1))
 print(trends_plot)
 ```
-
+There are no obvious linear trends, though SPPS seems to be having increases in descriptive/correlational studies. This can reflect 1) the methodological conservatism found in Lam (2025) or 2) a timeframe too short to detect any meaningful trends within the field.
