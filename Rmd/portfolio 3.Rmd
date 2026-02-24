@@ -10,4 +10,16 @@ output:
 This paper uses the existing definitions and methods validated by Lam (2025) to categorize all articles from JPSP, SPPS, and PSPB in 2017-2022. It is the "Phase 1" of 3, which aims at identifying potential for causal inference methods in psychology.
 
 
+## 1. Set Envrionment and Load Data
+```{r}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(kableExtra)
+library(readr)
+
+data <- read_csv("phase1_results.csv")
+```
+
+There are `r nrow(data)` articles in the dataset.
 
