@@ -11,9 +11,9 @@
 
 <meta name="author" content="Haley Lam" />
 
-<meta name="date" content="2026-04-01" />
+<meta name="date" content="2026-04-14" />
 
-<title>Simulation for the Effects of Social Media on Mental Health</title>
+<title>Portfolio 4: A DAG Structure for Social Media’s Impact on Mental Health</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -368,140 +368,164 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">Simulation for the Effects of Social Media
-on Mental Health</h1>
+<h1 class="title toc-ignore">Portfolio 4: A DAG Structure for Social
+Media’s Impact on Mental Health</h1>
 <h4 class="author">Haley Lam</h4>
-<h4 class="date">2026-04-01</h4>
+<h4 class="date">2026-04-14</h4>
 
 </div>
 
 
-<div id="overview" class="section level3">
-<h3>Overview</h3>
-<p>This is a simulation of what happens to outputs with typical OLS
-regression on cross-sectional data versus a quasi-experimental design
-(Difference-in-differences). The DiD design is heavily inspired by
-Braghieri et al. (2022), and the framework follows Baker et al. (2025).
-Monte carlo simulations follow Cunningham (2021)’s approach to teaching
-about causal inference.</p>
-</div>
-<div id="set-envrionment-and-set-parameters" class="section level2">
-<h2>1. Set Envrionment and Set Parameters</h2>
+<div id="overview" class="section level2">
+<h2>Overview</h2>
+<p>The goal of this portfolio is to unpack a causal structure as
+informed by the literature, intended for readers who want the complete
+picture. We’ll start from a simple DAG to more complicated structures to
+show the value of thinking through a causal structure before running
+analyses. There will be three panels, each with a threat to causal
+inference: Panel A: Two unmeasured confounders and observed covariates.
+Panel B: Conditioning on a Collider Panel C: Conditioning on a
+Mediator</p>
+<p>Let’s do it!</p>
+<div id="load-libraries-theres-no-data-to-load" class="section level3">
+<h3>Load Libraries (there’s no data to load!)</h3>
 <pre class="r"><code>library(ggplot2)
-library(tidyverse)</code></pre>
-<pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-## ✔ dplyr     1.1.4     ✔ readr     2.1.5
-## ✔ forcats   1.0.1     ✔ stringr   1.5.2
-## ✔ lubridate 1.9.4     ✔ tibble    3.3.0
-## ✔ purrr     1.1.0     ✔ tidyr     1.3.1
-## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-## ✖ dplyr::filter() masks stats::filter()
-## ✖ dplyr::lag()    masks stats::lag()
-## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
-<pre class="r"><code>N          &lt;- 200     # Total colleges
-delta      &lt;- 0.085   # True causal effect
-gamma_u    &lt;- 0.30    # Unobserved covariate - OLS has no data for this
-gamma_w    &lt;- 0.15    # Observed covariate - OLS will &#39;control&#39; for this
-time_trend &lt;- 0.05    # Common time trend</code></pre>
+library(patchwork)
+library(dagitty)</code></pre>
 </div>
-<div id="make-some-data" class="section level2">
-<h2>2. Make Some Data!</h2>
-<p>The idea from Braghieri et al. (2022): Facebook was (randomly) rolled
-out to colleges at different times. We can use this exogenous shock to
-examine the effects of its availability on mental health outcomes.
-Therefore, our unit analysis here will be colleges (i.e., average
-college pre vs. post facebook)</p>
-<pre class="r"><code>set.seed(123)
-
-# Create the 200 colleges and their traits
-colleges &lt;- tibble(
-  college = 1:N,
-  Treat   = rep(c(1, 0), each = N / 2),
-  U       = rnorm(N),
-  W       = rnorm(N) 
-)
-
-df &lt;- colleges %&gt;%
-  crossing(period = 1:2) %&gt;% # Duplicate each college to have both time 1 and time 2
-        mutate(
-                Post = as.integer(period == 2),
-                D    = Treat * Post,  # 1 only for treated colleges in the post-period
-                # Generate random error terms
-                e_sm = rnorm(n(), mean = 0, sd = 0.5),
-                e_mh = rnorm(n(), mean = 0, sd = 0.5),
-                # Generate Social Media (SM) use
-                SM = gamma_w * W + gamma_u * U + D + e_sm,
-                # Generate Mental Health (MH) outcomes (higher = worse)
-                MH = delta * SM + gamma_u * U + gamma_w * W + (time_trend * Post) + e_mh
-  )
-
-head(df)</code></pre>
-<pre><code>## # A tibble: 6 × 11
-##   college Treat      U      W period  Post     D    e_sm    e_mh     SM      MH
-##     &lt;int&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;int&gt; &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;
-## 1       1     1 -0.560  2.20       1     0     0 -0.0368  0.178   0.125  0.350 
-## 2       1     1 -0.560  2.20       2     1     1 -0.584  -0.329   0.577 -0.0683
-## 3       2     1 -0.230  1.31       1     0     0 -0.317   0.428  -0.190  0.539 
-## 4       2     1 -0.230  1.31       2     1     1 -0.0144  0.576   1.11   0.849 
-## 5       3     1  1.56  -0.265      1     0     0  0.335   0.138   0.763  0.631 
-## 6       3     1  1.56  -0.265      2     1     1 -0.825   0.0721  0.603  0.601</code></pre>
 </div>
-<div id="examine-the-differences-in-differences-by-four-means-table" class="section level2">
-<h2>3. Examine the Differences in Differences by Four-Means Table</h2>
-<p>First, we will calculate the Difference-in-Differences “by hand”
-using a simple Four-Means table (Baker et al., 2025). Then, we will
-compare that result against standard OLS regressions to see why
-cross-sectional data fails us here.</p>
-<pre class="r"><code># 1. Four-Means Table (Baker et al., 2025)
-# a simple table that shows means for each group and period
-four_means &lt;- df %&gt;%
-  mutate(
-    Group  = ifelse(Treat == 1, &quot;Treated&quot;, &quot;Control&quot;),
-    Period = ifelse(Post == 1, &quot;Post&quot;, &quot;Pre&quot;)
-  ) %&gt;%
-  group_by(Group, Period) %&gt;%
-  summarize(mean_MH = mean(MH), .groups = &quot;drop&quot;) %&gt;%
-  pivot_wider(names_from = Period, values_from = mean_MH) %&gt;%
-  mutate(Change_Over_Time = Post - Pre)
-
-print(four_means)</code></pre>
-<pre><code>## # A tibble: 2 × 4
-##   Group     Post      Pre Change_Over_Time
-##   &lt;chr&gt;    &lt;dbl&gt;    &lt;dbl&gt;            &lt;dbl&gt;
-## 1 Control 0.0224 -0.00564           0.0280
-## 2 Treated 0.208   0.0654            0.142</code></pre>
-<pre class="r"><code># 2. Calculate DiD Estimate From the Table
-delta_T &lt;- four_means$Change_Over_Time[four_means$Group == &quot;Treated&quot;]
-delta_C &lt;- four_means$Change_Over_Time[four_means$Group == &quot;Control&quot;]
-did_manual &lt;- delta_T - delta_C
-
-round(did_manual, 4) # This is the estimated causal effect from the DiD, descriptively. </code></pre>
-<pre><code>## [1] 0.1141</code></pre>
+<div id="section-1-using-daggity-to-draw-and-analyze-dags" class="section level2">
+<h2>Section 1: Using “daggity” to draw and analyze DAGs</h2>
+<p>Daggity is a tool (and a package in R) that will help us
+understanding our hypothesized underlying causal structure. They have a
+website, but since we’re in R, we can use their package!</p>
+<div id="dag-1-unmeasured-confounding" class="section level3">
+<h3>DAG #1: Unmeasured Confounding</h3>
+<p>These are the variables we’ll be dealing with: SM = Social media use
+(treatment) MH = Mental health outcome (depression/wellbeing) U1 =
+Neuroticism / pre-existing mental health (unobserved latent) Predicts
+heavier SM use (emotional regulation, boredom avoidance) AND worse MH
+outcomes (pre-existing vulnerability). U2 = SES / family environment
+(unobserved latent) Lower SES predicts higher SM use (indoor leisure)
+AND worse MH (material hardship, neighborhood stress). There are proxies
+in W but they’re not fully captured. W = Observed covariates (age, sex,
+race, parental education) Standard controls in the correlational
+literature. Reduce bias from demographic variation but do NOT close the
+U1 or U2 backdoor paths.</p>
+<div id="daggity-for-dag-1" class="section level4">
+<h4>Daggity for Dag #1</h4>
+<p>Unmeasured confounding is something psychologists are aware about,
+and possibly the main reason why psychologists don’t trust in causality
+with observational data. Here, we show how it might appear in a DAG. We
+first define the variables (also called nodes), then draw the arrows (or
+edges).</p>
+<pre class="r"><code>dag_A &lt;- dagitty(&#39;dag {
+  SM 
+  MH 
+  U1 [latent]
+  U2 [latent]
+  W
+  
+  SM -&gt; MH
+  U1 -&gt; SM
+  U1 -&gt; MH
+  U2 -&gt; SM
+  U2 -&gt; MH
+  W  -&gt; SM
+  W  -&gt; MH
+}&#39;)</code></pre>
+<p>What we did above was define our causal structure. There are many
+ways to do this, including forks (SM &lt;- W -&gt; MH) and chains (we
+don’t have one here, but it’d look something like A -&gt; B -&gt; C),
+but what I did above was the simplest way, which defines causal
+directions with just pairs of variables. Now, we’ll use the
+“adjustmentSets” function to “test” our DAG! The output tells us what we
+must control for.</p>
+<p>We can first test a minimal solution. We should get an empty
+response, since we have unmeasured (latent) confounders that cannot be
+controlled for.</p>
+<pre class="r"><code>print(adjustmentSets(dag_A, &quot;SM&quot;, &quot;MH&quot;, type = &quot;minimal&quot;)) </code></pre>
+<p>This means that there is no solution to our issue of unmeasured
+confounders! We’re doomed! This is extremely useful to know, since we
+can control for our observed confounders (W) all we want, but this
+output tells us that with the data we currently have, an unbiased
+regression is impossible.</p>
+<p>Now, let’s see what we have to control to get an unbiased regression
+(i.e., block all backdoor paths). We can do this with the “type =”all””
+setting.</p>
+<pre class="r"><code>print(adjustmentSets(dag_A, &quot;SM&quot;, &quot;MH&quot;, type = &quot;all&quot;))</code></pre>
+<pre><code>## { U1, U2, W }</code></pre>
+<p>The ouput returned all adjustment sets possible. As we can see, we
+must adjust for U1, U2, AND W. Adjusting for only one or two of those
+would not work. In this first case, we learned that given our DAG has
+potential unobserved confounders, we have a biased regression if we
+simply condition on the observed confounder (i.e., the “try out best to
+control all we have” solution does not work!)</p>
 </div>
-<div id="compare-ols-vs.-did-regressions" class="section level2">
-<h2>4. Compare OLS vs. DiD Regressions</h2>
-<pre class="r"><code># For standard OLS, we only look at the post-treatment cross-sectional data
-df_post &lt;- df %&gt;% filter(Post == 1)
-
-# Regression 1: Naive OLS (Just SM and MH)
-ols_naive &lt;- lm(MH ~ SM, data = df_post)
-
-# Regression 2: Adjusted OLS (Controlling for the observed variable &#39;W&#39;, like anxiety)
-ols_adj &lt;- lm(MH ~ SM + W, data = df_post)
-
-# Regression 3: DiD Regression (Using the full panel data and interaction term)
-did_reg &lt;- lm(MH ~ Treat * Post, data = df)
-
-cat(&quot;1. OLS (Naive) SM Coefficient     :&quot;, round(coef(ols_naive)[&quot;SM&quot;], 4), &quot;\n&quot;)</code></pre>
-<pre><code>## 1. OLS (Naive) SM Coefficient     : 0.3448</code></pre>
-<pre class="r"><code>cat(&quot;2. OLS (Adjusted) SM Coefficient  :&quot;, round(coef(ols_adj)[&quot;SM&quot;], 4), &quot;\n&quot;)</code></pre>
-<pre><code>## 2. OLS (Adjusted) SM Coefficient  : 0.3093</code></pre>
-<pre class="r"><code>cat(&quot;3. DiD (Treat:Post) Coefficient   :&quot;, round(coef(did_reg)[&quot;Treat:Post&quot;], 4), &quot;\n&quot;)</code></pre>
-<pre><code>## 3. DiD (Treat:Post) Coefficient   : 0.1141</code></pre>
-<pre class="r"><code>cat(&quot;True Causal Effect (delta)        :&quot;, delta, &quot;\n&quot;)</code></pre>
-<pre><code>## True Causal Effect (delta)        : 0.085</code></pre>
-<p>As you can see, the estimate from the DiD is much closer to the true
-causal effect.</p>
+</div>
+<div id="dag-2-collider-bias" class="section level3">
+<h3>DAG #2: Collider Bias</h3>
+<p>Here are our variables: SM = Social media use MH = Mental health U =
+Unobserved background confounders (neuroticism, pre-existing MH) C =
+In-person social interaction (the hypothesized collider)</p>
+<p>C is a collider because both X and Y affect it: SM → C : Substitution
+— heavy social media use displaces time that would otherwise be spent
+face-to-face (more SM → less in-person) MH → C : Social withdrawal —
+depression and anxiety reduce motivation and ability to engage in
+in-person social activities (worse MH → less in-person interaction)</p>
+<p>Since C has two causes on the path of interest (SM and MH), C is a
+collider on the path SM → C ← MH. The standard DAG result: conditioning
+on a collider <em>opens</em> a path between its causes. So including C
+as a covariate does not “control for” in-person socializing in a neutral
+way, but introduces a spurious relationship between SM and MH.</p>
+<div id="daggity-for-dag-2" class="section level4">
+<h4>Daggity for DAG #2</h4>
+<p>Again, let’s first define our DAG.</p>
+<pre class="r"><code>dag_B &lt;- dagitty(&#39;dag {
+  SM 
+  MH 
+  U  [latent]
+  C  
+  
+  SM -&gt; MH
+  U  -&gt; SM
+  U  -&gt; MH
+  SM -&gt; C
+  MH -&gt; C
+}&#39;)</code></pre>
+<p>We can do the same thing here with seeing minimal adjustment sets for
+SM-&gt;MH. Meaning, what can we control for given the data we have?</p>
+<pre class="r"><code>print(adjustmentSets(dag_B, &quot;SM&quot;, &quot;MH&quot;, type = &quot;minimal&quot;))</code></pre>
+<p>Well, nothing! There’s nothing we can do! What if we had all data?
+What would we control for?</p>
+<pre class="r"><code>print(adjustmentSets(dag_B, &quot;SM&quot;, &quot;MH&quot;, type = &quot;all&quot;))</code></pre>
+<pre><code>## { U }</code></pre>
+<p>Notice here that “C” is not in the output! This means that there is
+no case in which controlling for the collider would produce an unbiased
+estimator.</p>
+<p>Now, we can more clearly see the issue with controlling for a
+collider here. We can compare the before and after of 1) not controlling
+for the collider and 2) controlling for the collider.</p>
+<pre class="r"><code>paths(dag_B, &quot;SM&quot;, &quot;MH&quot;, Z = c(&quot;U&quot;))</code></pre>
+<pre><code>## $paths
+## [1] &quot;SM -&gt; C &lt;- MH&quot; &quot;SM -&gt; MH&quot;      &quot;SM &lt;- U -&gt; MH&quot;
+## 
+## $open
+## [1] FALSE  TRUE FALSE</code></pre>
+<pre class="r"><code>paths(dag_B, &quot;SM&quot;, &quot;MH&quot;, Z = c(&quot;U&quot;, &quot;C&quot;))</code></pre>
+<pre><code>## $paths
+## [1] &quot;SM -&gt; C &lt;- MH&quot; &quot;SM -&gt; MH&quot;      &quot;SM &lt;- U -&gt; MH&quot;
+## 
+## $open
+## [1]  TRUE  TRUE FALSE</code></pre>
+<p>We can see the in the first equation, SM -&gt; C &lt;- MH, is blocked
+(or closed). This is a good thing. We correctly control for U, and our
+only open path is the direct effect of SM -&gt; MH. This is perfect!</p>
+<p>However, in the second one, we opened the path SM -&gt; C &lt;- MH.
+This introduces bias and we now have an opened backdoor path! We now
+have some additional spurrious association betweeen SM and MH.</p>
+</div>
+</div>
 </div>
 
 
