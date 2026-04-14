@@ -107,3 +107,14 @@ cat("True Causal Effect (delta)        :", delta, "\n")
 ```
 
 As you can see, the estimate from the DiD is much closer to the true causal effect.
+
+## 5. Figure for Parallel Trends
+
+Difference-in-Differences relies on the "Parallel Trends" assumption. This means that if the treatment (Facebook) had never happened, the treated colleges would have continued on the exact same trajectory as the control colleges.
+
+To visualize this, we will simulate 6 time periods. Facebook will be rolled out to the treated colleges in Period 4 (so there are 3 periods pre-treatment and 3 periods post-treatment).
+
+```{r}
+
+```
+
