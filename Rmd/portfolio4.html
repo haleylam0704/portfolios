@@ -524,7 +524,92 @@ only open path is the direct effect of SM -&gt; MH. This is perfect!</p>
 <p>However, in the second one, we opened the path SM -&gt; C &lt;- MH.
 This introduces bias and we now have an opened backdoor path! We now
 have some additional spurrious association betweeen SM and MH.</p>
+<p>Another thing we can do to more clearly show this is with dagitty’s
+simulations. Here, we can define the true effect and observe what
+happens when we control for things. Let’s say SM affects MH by 0.30
+units. This is the SM -&gt; MH path, with beta = 0.30.</p>
+<pre class="r"><code>dag_B_sim &lt;- dagitty(&#39;dag {
+  U 
+  SM [exposure]
+  MH [outcome]
+  C
+
+  U -&gt; SM [beta=0.4]
+  U -&gt; MH [beta=0.4]
+  SM -&gt; MH [beta=0.3]
+  SM -&gt; C  [beta=0.4]
+  MH -&gt; C  [beta=0.4]
+}&#39;)
+
+set.seed(123)
+fake_data &lt;- simulateSEM(dag_B_sim, N = 10000)</code></pre>
+<p>Now, here’s the first test, which controls for U (unobserved
+covariate. We pretend we can control for it…).</p>
+<pre class="r"><code>model_perfect &lt;- lm(MH ~ SM + U, data = fake_data)
+coef(model_perfect)</code></pre>
+<pre><code>##  (Intercept)           SM            U 
+## -0.002106275  0.288793206  0.390147287</code></pre>
+<p>Here, the estimate for SM’s effect is 0.289. Pretty close to our
+defined 0.30! Now, let’s test controlling for U AND for the collider
+(in-person social interaction).</p>
+<pre class="r"><code>model_mistake &lt;- lm(MH ~ SM + U + C, data = fake_data)
+coef(model_mistake)</code></pre>
+<pre><code>## (Intercept)          SM           U           C 
+## 0.001072084 0.077429873 0.324401644 0.404580820</code></pre>
+<p>The estimate of social media’s effect drops to 0.077! Potentially a
+null effect now, because we controlled for a collider. We know (since we
+defined it) that the true effect is 0.30, but our regression is biased.
+Don’t control for colliders!!!!</p>
 </div>
+</div>
+<div id="dag-3-controlling-for-a-mediator" class="section level3">
+<h3>DAG #3: Controlling for a Mediator</h3>
+<p>Variables: SM = Social media use Sl = Sleep disruption (mediator on
+the SM -&gt; MH path) MH = Mental health U = Background confounders of
+SM and MH (unobserved) Uc = Confounders specific to sleep AND mental
+health (unobserved) - Examples: chronic stress (disrupts sleep AND
+worsens MH directly); physical health conditions; major life events
+unrelated to SM</p>
+<p>The mediated path SM → Sleep → MH captures the “phone in the bedroom”
+effect: SM → Sleep: Blue-light exposure affects sleep; bedtime scrolling
+delays sleep onset. Sleep → MH: Poor sleep quality and duration are
+strong predictors of depression and anxiety severity.</p>
+<pre class="r"><code>dag_C &lt;- dagitty(&#39;dag {
+  SM 
+  Sl 
+  MH 
+  U  [latent]
+  Uc [latent]
+  
+  SM -&gt; Sl
+  Sl -&gt; MH
+  SM -&gt; MH
+  U  -&gt; SM
+  U  -&gt; MH
+  Uc -&gt; Sl
+  Uc -&gt; MH
+}&#39;)</code></pre>
+<p>These are all our paths:</p>
+<pre class="r"><code>print(paths(dag_C, &quot;SM&quot;, &quot;MH&quot;)$paths)</code></pre>
+<pre><code>## [1] &quot;SM -&gt; MH&quot;             &quot;SM -&gt; Sl -&gt; MH&quot;       &quot;SM -&gt; Sl &lt;- Uc -&gt; MH&quot;
+## [4] &quot;SM &lt;- U -&gt; MH&quot;</code></pre>
+<p>Let’s see what we can do to close our backdoor paths for SM to
+MH.</p>
+<pre class="r"><code>print(adjustmentSets(dag_C, &quot;SM&quot;, &quot;MH&quot;, type = &quot;all&quot;))</code></pre>
+<pre><code>## { U }
+## { U, Uc }</code></pre>
+<p>Either one of those solutions work. We can control for U or both U
+and Uc!</p>
+<p>Here are the two problems with controlling for Sleep: 1. Blocks the
+indirect path SM → Sleep → MH, so the regression coefficient on SM
+estimates only the direct path, underestimating total effect. 2. To
+complicate things, Uc confounds Sleep and MH. In our example, sleep is a
+collider for SM and Uc. Once we condition on Sleep (a descendant of both
+SM and Uc), we open what’s called an “M-bias path”: SM → Sleep ← Uc →
+MH. The “direct effect” estimate of SM on MH after conditioning on Sleep
+is now affected by Uc. By trying to block a mediator (to observe direct
+effects), we now turned sleep into an active collider, opening a
+backdoor path!</p>
 </div>
 </div>
 

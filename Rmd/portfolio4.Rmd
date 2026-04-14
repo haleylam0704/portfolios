@@ -134,5 +134,88 @@ We can see the in the first equation, SM -> C <- MH, is blocked (or closed). Thi
 
 However, in the second one, we opened the path SM -> C <- MH. This introduces bias and we now have an opened backdoor path! We now have some additional spurrious association betweeen SM and MH. 
 
+Another thing we can do to more clearly show this is with dagitty's simulations. Here, we can define the true effect and observe what happens when we control for things. Let's say SM affects MH by 0.30 units. This is the SM -> MH path, with beta = 0.30.
+
+```{r}
+dag_B_sim <- dagitty('dag {
+  U 
+  SM [exposure]
+  MH [outcome]
+  C
+
+  U -> SM [beta=0.4]
+  U -> MH [beta=0.4]
+  SM -> MH [beta=0.3]
+  SM -> C  [beta=0.4]
+  MH -> C  [beta=0.4]
+}')
+
+set.seed(123)
+fake_data <- simulateSEM(dag_B_sim, N = 10000)
+```
+
+Now, here's the first test, which controls for U (unobserved covariate. We pretend we can control for it...). 
+```{r}
+model_perfect <- lm(MH ~ SM + U, data = fake_data)
+coef(model_perfect)
+```
+
+Here, the estimate for SM's effect is 0.289. Pretty close to our defined 0.30!
+Now, let's test controlling for U AND for the collider (in-person social interaction).
+```{r}
+model_mistake <- lm(MH ~ SM + U + C, data = fake_data)
+coef(model_mistake)
+```
+
+The estimate of social media's effect drops to 0.077! Potentially a null effect now, because we controlled for a collider. We know (since we defined it) that the true effect is 0.30, but our regression is biased. Don't control for colliders!!!!
+
+### DAG #3: Controlling for a Mediator
+Variables:
+SM = Social media use
+Sl = Sleep disruption (mediator on the SM -> MH path)
+MH = Mental health
+U = Background confounders of SM and MH (unobserved)
+Uc = Confounders specific to sleep AND mental health (unobserved)
+- Examples: chronic stress (disrupts sleep AND worsens MH directly); physical health conditions; major life events unrelated to SM
+
+The mediated path SM → Sleep → MH captures the "phone in the bedroom" effect:
+SM → Sleep: Blue-light exposure affects sleep; bedtime scrolling delays sleep onset.
+Sleep → MH: Poor sleep quality and duration are strong predictors of depression and anxiety severity.
+
+```{r}
+dag_C <- dagitty('dag {
+  SM 
+  Sl 
+  MH 
+  U  [latent]
+  Uc [latent]
+  
+  SM -> Sl
+  Sl -> MH
+  SM -> MH
+  U  -> SM
+  U  -> MH
+  Uc -> Sl
+  Uc -> MH
+}')
+```
+
+These are all our paths:
+```{r}
+print(paths(dag_C, "SM", "MH")$paths)
+
+```
+
+Let's see what we can do to close our backdoor paths for SM to MH. 
+```{r}
+print(adjustmentSets(dag_C, "SM", "MH", type = "all"))
+
+```
+
+Either one of those solutions work. We can control for U or both U and Uc! 
+
+Here are the two problems with controlling for Sleep:
+1. Blocks the indirect path SM → Sleep → MH, so the regression coefficient on SM estimates only the direct path, underestimating total effect.
+2. To complicate things, Uc confounds Sleep and MH. In our example, sleep is a collider for SM and Uc. Once we condition on Sleep (a descendant of both SM and Uc), we open what's called an "M-bias path": SM → Sleep ← Uc → MH. The "direct effect" estimate of SM on MH after conditioning on Sleep is now affected by Uc. By trying to block a mediator (to observe direct effects), we now turned sleep into an active collider, opening a backdoor path!
 
 
