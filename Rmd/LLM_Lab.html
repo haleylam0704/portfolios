@@ -547,7 +547,7 @@ response$usage$completion_tokens</code></pre>
 <li>What did the model return? Does the category seem right to you? Look
 at the <code>usage</code> object. If each completion uses roughly this
 many tokens, and <code>gpt-4.1-mini</code> costs $0.40 per million input
-tokens and $0.10 per million output tokens, roughly how much would it
+tokens and $1.60 per million output tokens, roughly how much would it
 cost to run all 100 rows?</li>
 </ol>
 </div>
@@ -586,7 +586,8 @@ might be most fit for our task? Why?</li>
 </div>
 <div id="part-4-batch-processing" class="section level3 unnumbered">
 <h3 class="unnumbered">Part 4: Batch Processing</h3>
-<p>For the rest of this lab we’ll use <code>temperature = 0</code>.</p>
+<p>For the rest of this lab we’ll use <code>temperature = 0</code>. We
+will now be coding the 100 rows</p>
 <p>Now loop the API call over all 100 rows. This is the core thing an
 API can do that a chat interface cannot: process data query by query at
 scale.</p>
@@ -622,7 +623,8 @@ for (i in seq_len(nrow(hm_sample))) {
 # Bind results into the sample dataframe
 hm_coded &lt;- hm_sample %&gt;%
   mutate(
-    llm_category   = map_chr(results, ~ .x$category %||% NA_character_),
+    llm_category   = map_chr(results, ~ .x$category %||% NA_character_),  
+    # %||% returns right side if left is NULL
     llm_confidence = map_chr(results, ~ .x$confidence %||% NA_character_)
   )
 

@@ -185,7 +185,7 @@ response$usage$prompt_tokens
 response$usage$completion_tokens
 ```
 
-4. What did the model return? Does the category seem right to you? Look at the `usage` object. If each completion uses roughly this many tokens, and `gpt-4.1-mini` costs $0.40 per million input tokens and $0.10 per million output tokens, roughly how much would it cost to run all 100 rows?
+4. What did the model return? Does the category seem right to you? Look at the `usage` object. If each completion uses roughly this many tokens, and `gpt-4.1-mini` costs $0.40 per million input tokens and $1.60 per million output tokens, roughly how much would it cost to run all 100 rows?
 
 ### Part 3: Playing Around With Temperature {.unnumbered}
 
@@ -218,7 +218,7 @@ temp2_results
 
 ### Part 4: Batch Processing {.unnumbered}
 
-For the rest of this lab we'll use `temperature = 0`.
+For the rest of this lab we'll use `temperature = 0`. We will now be coding the 100 rows
 
 Now loop the API call over all 100 rows. This is the core thing an API can do that a chat interface cannot: process data query by query at scale.
 
@@ -252,7 +252,8 @@ for (i in seq_len(nrow(hm_sample))) {
 # Bind results into the sample dataframe
 hm_coded <- hm_sample %>%
   mutate(
-    llm_category   = map_chr(results, ~ .x$category %||% NA_character_),
+    llm_category   = map_chr(results, ~ .x$category %||% NA_character_),  
+    # %||% returns right side if left is NULL
     llm_confidence = map_chr(results, ~ .x$confidence %||% NA_character_)
   )
 
