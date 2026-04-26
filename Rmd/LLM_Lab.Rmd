@@ -288,26 +288,19 @@ table(
 
 7. What is the LLM's overall accuracy against human labels? Look at the confusion matrix. Which categories does it get right most reliably? Which does it confuse most often?
 
-Then, we can look at the LLM vs. HappyDB Classifer
-
-```{r llm-vs-classifier}
-hm_coded %>%
-  summarize(
-    accuracy = mean(llm_category == predicted_category, na.rm = TRUE)
-  )
-```
+Then, compare the LLM labels against the HappyDB Classifer using a similar code to the previous exercise.
 
 8. Does the LLM agree more with the human labels or with the HappyDB classifier? What might explain the difference?
 
-The HappyDB paper reported that their classifier struggled most with enjoy_the_moment (F1 = 54%) and nature (F1 = 63%). 
+The HappyDB paper reported that their classifier struggled most with enjoy_the_moment (F1 = 54%) and nature (F1 = 63%).
 
 ```{r hard-categories}
-hm_coded |>
-  group_by(ground_truth_category) |>
-  summarise(
+hm_coded %>%
+  group_by(ground_truth_category) %>%
+  summarize(
     n        = n(),
     llm_accuracy = mean(llm_category == ground_truth_category, na.rm = TRUE)
-  ) |>
+  ) %>%
   arrange(llm_accuracy)
 ```
 
